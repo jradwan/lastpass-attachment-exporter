@@ -2,22 +2,74 @@
 
 # TODO
 # - suppress errors on shared folders
-# - command-line parameters:
-#   - verbose: full logging
-#   - export : actually export attachments (default is test-only mode for list)
 
-mkdir -p lpass-export
-cd lpass-export
+USAGE="usage: $0 [-v] (verbose mode) [-x] (export attachments)]"
+VERBOSE_MODE=false
+EXPORT_MODE=false
+itemcount=0
+expcount=0
 
+# show usage/help
+if [ $# -eq  1 ] && ( [ $1 == "-h" ] || [ $1 == "-?" ] || [ $1 == '--help' ] ) ; then
+    echo $USAGE
+    exit 1;
+fi
+
+# parse options
+while getopts "vx" optname
+  do
+    case "$optname" in
+      "v")
+        VERBOSE_MODE=true
+        ;;
+      "x")
+        EXPORT_MODE=true
+        ;;
+      "?")
+        echo "unknown option"
+        exit 1;
+        ;;
+      *)
+        echo "unknown error while processing options"
+        exit 1;
+        ;;
+    esac
+  done
+
+echo -en "\nLastPass attachment "
+if $EXPORT_MODE ; then
+    echo -n "export"
+else
+    echo -n "list"
+fi
+
+if $VERBOSE_MODE ; then
+    echo -e " (verbose mode)\n"
+else
+    echo -e "\n"
+fi
+
+# create directory to hold exported attachments
+if $EXPORT_MODE ; then
+    mkdir -p lpass-export
+    cd lpass-export
+fi
+
+# loop through vault items
 for id in `lpass ls | sed -n "s/^.*id:\s*\([0-9]*\).*$/\1/p"`; do
 
-  # TODO: enable for verbose mode
-  #echo "Checking: " ${id}
+  if $VERBOSE_MODE ; then
+      echo "Checking: " ${id}
+  fi
+
+  # keep count of items parsed
+  ((itemcount++))
 
   # TODO: 'Error: Could not find specified account(s).' messages are caused by shared folders, suppress them?
   path=`lpass show ${id} | sed "1q;d" | awk '{$NF=""; print $0}' | awk '{$NF=""; print $0}' | awk '{$1=$1};1'`
   attcount=`lpass show ${id} | grep att- | wc -l`
 
+  # loop through attachments (if any)
   until [  ${attcount} -lt 1 ]; do
     att=`lpass show ${id} | grep att- | sed "${attcount}q;d" | tr -d :`
     attid=`echo ${att} | awk '{print $1}'`
@@ -28,21 +80,41 @@ for id in `lpass ls | sed -n "s/^.*id:\s*\([0-9]*\).*$/\1/p"`; do
     fi
 
     path=${path//\\//}
-    mkdir -p "${path}"
+    if $EXPORT_MODE ; then
+        mkdir -p "${path}"
+    fi
     out=${path}/${attname}
 
     if [[ -f ${out} ]]; then
         out=${path}/${attcount}_${attname}
     fi
 
-    # TODO: enable for verbose mode
-    #echo ${id} - ${path} ": " ${attid} "-" ${attname} " > " ${out}
-    echo ${out}
+    if $VERBOSE_MODE ; then
+        echo ${id} - ${path} ": " ${attid} "-" ${attname} " > " ${out}
+    else
+        echo ${out}
+    fi
 
-    # TODO: enable for export mode
-    #lpass show --attach=${attid} ${id} --quiet > "${out}"
+    # export the attachment
+    if $EXPORT_MODE ; then
+        lpass show --attach=${attid} ${id} --quiet > "${out}"
+    fi
+
+    # keep count of attachments found
+    ((expcount++))
 
     let attcount-=1
   done
 done
+
+# display final stats
+echo -en "\n" $itemcount
+echo -n " items searched, "
+echo -n $expcount
+echo -n " attachments "
+if $EXPORT_MODE ; then
+    echo -e "exported.\n"
+else
+    echo -e "listed.\n"
+fi
 
