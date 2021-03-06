@@ -1,20 +1,32 @@
-# lastpass-attachment-exporter
-Exports all Attachments from lastpass. Make sure, you run this in from a safe
-place, for example an encrypted hard drive. All your attachements will be
-cleartext readable.
+# LastPass Attachment Exporter
 
-## prerequisites
-This script uses [lastpass-cli](https://github.com/lastpass/lastpass-cli). Make
-sure, you are already logged in.
+Exports all attachments from LastPass vault items. 
 
-bash
-sed
-awk
-grep
-tr
+Make sure you run this from a secure location (for example, an encrypted hard drive) as all of your exported attachements will be decrypted and hence, "clear text" readable.
 
-## usage
-1) login via `lpass login`
-2) run ./lpass-att-export.sh
-3) check subfolder 'lpass-export'
+## Pre-requisites
 
+* [lastpass-cli](https://github.com/lastpass/lastpass-cli) (be sure you are already logged in, see Usage below)
+* bash
+* sed
+* awk
+* grep
+* tr
+
+## Usage
+
+1) log into your LastPass vault via `lpass login <account>`
+2) run ./lpass-att-export.sh -x
+3) check the `lpass-export` subdirectory for your attachments
+4) log out of your vault (`lpass logout`)
+
+To just get a list of your attachments and their locations, leave off the `-x` parameter. Use `-v` for verbose logging mode.
+
+## Known Issues
+
+Both of these items are from the lastpass-cli and not this exporter script:
+
+* Shared folders will return a "Error: Could not find specified account(s)." message; this can be ignored since folders don't have any attachments. 
+  * Use `lpass ls | grep <id>` (where `<id>` is the number from the line right before the error (in verbose mode)) to confirm the name of the folder.
+* "Corrupted" (un-decryptable) attachments may return a "Error: Unable to decrypt attachment `<id>-<attid>`" message.
+  * Use `lpass show <id>` to list which vault item contains the corrupted attachment. 
