@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # TODO
-# - suppress errors on shared folders
+# - fix export of attachments with spaces in filename
+
 
 USAGE="usage: $0 [-v] (verbose mode) [-x] (export attachments)]"
 VERBOSE_MODE=false
@@ -58,54 +59,59 @@ fi
 # loop through vault items
 for id in `lpass ls | sed -n "s/^.*id:\s*\([0-9]*\).*$/\1/p"`; do
 
-  if $VERBOSE_MODE ; then
-      echo "Checking: " ${id}
-  fi
-
   # keep count of items parsed
   ((itemcount++))
 
-  # TODO: 'Error: Could not find specified account(s).' messages are caused by shared folders, suppress them?
-  path=`lpass show ${id} | sed "1q;d" | awk '{$NF=""; print $0}' | awk '{$NF=""; print $0}' | awk '{$1=$1};1'`
-  attcount=`lpass show ${id} | grep att- | wc -l`
-
-  # loop through attachments (if any)
-  until [  ${attcount} -lt 1 ]; do
-    att=`lpass show ${id} | grep att- | sed "${attcount}q;d" | tr -d :`
-    attid=`echo ${att} | awk '{print $1}'`
-    attname=`echo ${att} | awk '{print $2}'`
-
-    if [[ -z  ${attname}  ]]; then
-      attname=${path#*/}
-    fi
-
-    path=${path//\\//}
-    if $EXPORT_MODE ; then
-        mkdir -p "${path}"
-    fi
-    out=${path}/${attname}
-
-    if [[ -f ${out} ]]; then
-        out=${path}/${attcount}_${attname}
-    fi
-
+  path=`lpass show ${id} 2> /dev/null | sed "1q;d" | awk '{$NF=""; print $0}' | awk '{$NF=""; print $0}' | awk '{$1=$1};1'`
+  # if the current item is valid (non-null value returned by above line), then proceed. this prevents a
+  # second error from attcount line below
+  if [ ! -z "$path"  ] ; then
     if $VERBOSE_MODE ; then
-        echo ${id} - ${path} ": " ${attid} "-" ${attname} " > " ${out}
-    else
-        echo ${out}
+        echo "Checking: "${id} "-" $path
     fi
+    attcount=`lpass show ${id} 2> /dev/null | grep att- | wc -l`
 
-    # export the attachment
-    if $EXPORT_MODE ; then
-        lpass show --attach=${attid} ${id} --quiet > "${out}"
-    fi
+    # loop through attachments (if any)
+    until [ ${attcount} -lt 1 ]; do
+      att=`lpass show ${id} | grep att- | sed "${attcount}q;d" | tr -d :`
+      attid=`echo ${att} | awk '{print $1}'`
+      attname=`echo ${att} | awk '{print $2}'`
 
-    # keep count of attachments found
-    ((expcount++))
+      if [[ -z  ${attname}  ]]; then
+        attname=${path#*/}
+      fi
 
-    let attcount-=1
-  done
-done
+      path=${path//\\//}
+      if $EXPORT_MODE ; then
+          mkdir -p "${path}"
+      fi
+      out=${path}/${attname}
+
+      if [[ -f ${out} ]]; then
+          out=${path}/${attcount}_${attname}
+      fi
+
+      if $VERBOSE_MODE ; then
+          echo -e "\nexporting attachment:" ${id} "-" ${path} ":" ${attid} "-" ${attname} ">" ${out} "\n"
+      else
+          echo ${out}
+      fi
+
+      # export the attachment
+      if $EXPORT_MODE ; then
+          lpass show --attach=${attid} ${id} --quiet > "${out}"
+      fi
+
+      # keep count of attachments found
+      ((expcount++))
+
+      let attcount-=1
+
+    done # attachment loop
+
+  fi # valid item/path
+
+done # loop through vault items
 
 # display final stats
 echo -en "\n" $itemcount
