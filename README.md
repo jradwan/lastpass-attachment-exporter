@@ -26,7 +26,6 @@ To just get a list of your attachments and their locations, leave off the `-x` p
 
 Both of these items are from the lastpass-cli and not this exporter script:
 
-* Shared folders will return a "Error: Could not find specified account(s)." message; this can be ignored since folders don't have any attachments. 
-  * Use `lpass ls | grep <id>` (where `<id>` is the number from the line right before the error (in verbose mode)) to confirm the name of the folder.
+* Attachments with spaces in their filename are exported with an incomplete name (ends at first space)
 * "Corrupted" (un-decryptable) attachments may return a "Error: Unable to decrypt attachment `<id>-<attid>`" message.
   * Use `lpass show <id>` to list which vault item contains the corrupted attachment. 
