@@ -2,7 +2,7 @@
 
 Exports all attachments from LastPass vault items. 
 
-Make sure you run this from a secure location (for example, an encrypted hard drive) as all of your exported attachements will be decrypted and hence, "clear text" readable.
+Make sure you run this from a secure location (for example, an encrypted hard drive) as all of your exported attachments will be decrypted and hence, "clear text" readable.
 
 ## Pre-requisites
 
