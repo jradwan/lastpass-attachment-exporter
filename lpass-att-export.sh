@@ -1,9 +1,5 @@
 #!/bin/bash
 
-# TODO
-# - fix export of attachments with spaces in filename
-
-
 USAGE="usage: $0 [-v] (verbose mode) [-x] (export attachments)]"
 VERBOSE_MODE=false
 EXPORT_MODE=false
@@ -75,7 +71,7 @@ for id in `lpass ls | sed -n "s/^.*id:\s*\([0-9]*\).*$/\1/p"`; do
     until [ ${attcount} -lt 1 ]; do
       att=`lpass show ${id} | grep att- | sed "${attcount}q;d" | tr -d :`
       attid=`echo ${att} | awk '{print $1}'`
-      attname=`echo ${att} | awk '{print $2}'`
+      attname=`echo ${att} | sed 's/[^ ]* *//'`
 
       if [[ -z  ${attname}  ]]; then
         attname=${path#*/}
